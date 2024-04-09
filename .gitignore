@@ -1,0 +1,8 @@
+# exclude data from source control by default
+/docs
+/env
+/results
+/src
+/.vscode
+environment_local.yml
+seafile-ignore.txt

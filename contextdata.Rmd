@@ -1,0 +1,14 @@
+---
+output: html_document
+---
+
+# Workshop Kontextdaten
+
+Dieser File enthält Übungscode für
+- X
+- Y
+- Z
+
+```r
+  print("Hello world!")
+```
