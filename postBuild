@@ -1,9 +1,7 @@
 #!/bin/bash
-set -e
-conda list
 
 # install CRAN packages
-R -e 'install.packages("googleway", dependencies = TRUE)' # Google API access
+R -e 'install.packages(c("googleway", "restatis"), repos = "https://ftp.fau.de/cran/", dependencies = TRUE)' # Google API access
 R -e 'install.packages("restatis", dependencies = TRUE)' # Destatis GENESIS access
 R -e 'remotes::install_github("sumtxt/bonn", force=TRUE)' # INKAR API access
 R -e 'remotes::install_github("sumtxt/ags", force=TRUE)' # AGS crosswalks
