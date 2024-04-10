@@ -2,7 +2,10 @@ channels:
   - conda-forge
 dependencies:
   - r-base=4.2
+  - r-gridextra
+  - r-jqr
   - r-markdown
   - r-terra
+  - r-tidyterra
   - r-tidyverse
   

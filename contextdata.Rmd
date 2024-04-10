@@ -2,13 +2,172 @@
 output: html_document
 ---
 
-# Workshop Kontextdaten
+# Workshop räumliche Kontextdaten
 
-Dieser File enthält Übungscode für
+Jupyter R Studio environment mit Beispielen/Übungen zum automatisierten Ziehen von räumlichen Kontextdaten für Deutschland aus verschiedenen Quellen:
 - X
 - Y
 - Z
 
-```r
-  print("Hello world!")
+```{r, packages}
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+library(readr)
+library(stringr)
+library(tibble)
+library(terra)
+library(tidyterra)
+library(ags) # crosswalk AGS
+library(googleway) # access google API
+library(bonn) # access INKAR API
+library(rvest) # web scraping 
 ```
+
+```{r, shapefiles}
+kre22 <- vect("data/kre22/kre22.shp") # Kreise Berlin, Brandenburg, Sachsen 2022
+kre05 <- vect("data/kre05/kre05.shp") # Kreise Berlin, Brandenburg, Sachsen 2005
+```
+
+## Google
+
+### API Zugang
+
+- Ihr braucht einen API key von [Google Cloud](https://cloud.google.com/)
+- Neue User bekommen free credits (vor 1 Jahr ~ 300 Euro) und einige Services erlauben limitierte kostenlose Anfragen pro Tag, aber generell kostet jede Anfrage $
+
+```{r}
+key <- "API_KEY"
+set_key(key = key)
+google_keys()
+```
+
+### Google Places Beispiel
+
+- Interesse: lokale Gesundheitsversorgung
+- Vorhandene Daten: Koordinaten zum Wohnort einer Person
+- Abfrage: Krankenhäuser in der Umgebung
+
+```{r}
+assign("has_internet_via_proxy", TRUE, environment(curl::has_internet)) # circumvent hu net error
+coords <- c(52.50960542566534, 13.387616284657216) # no standard; Google = lat lng
+res <- google_places(
+  location = coords,
+  keyword = "Krankenhaus",
+  radius = 5000, # 5km Umkreis; aber Achtung: nicht strikt umgesetzt
+  language = "de",
+  key = key
+  )
+print(names(res$results))
+print(nrow(res$results)) # max. 20/page; next: new request with page_token arg
+# res <- google_places(
+#   location = coords,
+#   keyword = "Krankenhaus",
+#   radius = 5000,
+#   language = "de",
+#   page_token = res$next_page_token,
+#   key = key
+#   )
+```
+
+```{r}
+res <- as.data.frame(
+  cbind(
+    res$result[c("name", "rating", "types", "vicinity")],
+    res$result$geometry$location
+    )
+  )
+print(res)
+```
+
+```{r}
+google_p <- vect(res, geom=c("lng", "lat"), crs="EPSG:4326")
+person_p <- vect(data.frame(lat=coords[1], lng=coords[2]), geom=c("lng", "lat"), crs="EPSG:4326")
+person_5km_radius <- buffer(person_p, width=5000)
+ggplot() +
+  geom_spatvector(data = kre22 %>% filter(SN_L == "11"), fill = "white") + # Berlin
+  geom_spatvector(data = project(google_p, crs(kre22))) + # Google results
+  geom_spatvector(data = project(person_p, crs(kre22)), color = "purple") + # person
+  geom_spatvector(data = project(person_5km_radius, crs(kre22)), color = "purple", fill = NA) # radius
+```
+
+Wie ginge es weiter?
+- z.B. räumliche Distanz zum nächsten Krankenhaus messen; Luftlinie vs. real gegeben Verkehrsmittel...
+
+
+## Harmonisierung
+
+Das Beispiel zeigt die Veränderung des AGS durch Zusammenlegung verschiedener Kreise in Sachsen zwischen 2005 und 2009, welche zu einem Zeitreihenbruch führen in den Daten zur Wahlbeteiligung zu den Bundestagswahlen 1998 - 2017. Dieser Bruch kann durch Crosswalks behoben werden, hier umgesetzt mit dem R-package `ags` (aus der Package [Vignette](https://www.moritz-marbach.com/ags/articles/ags.html) ist auch das Beispiel).
+
+Zeitreihenbruch:
+
+```{r}
+# Wahlbeteilung Bundestagswahl: Luecke 2005 -> 2009
+data(btw_sn)
+btw_sn <- btw_sn %>% filter(year >= 1998)
+ggplot(btw_sn, aes(year, (valid/voters)*(100), group=district)) + 
+  geom_line() + geom_point() + ylab("Turnout (in %)") + xlab("Year")
+```
+
+AGS 2005 und 2022 im Vergleich:
+
+```{r}
+ggplot() +
+  geom_spatvector(data = kre05 %>% filter(str_detect(AGS, "^14")), color = "purple", fill = "white") +
+  geom_spatvector(data = kre22 %>% filter(SN_L == "14"), fill = NA, lwd = 0.6)
+```
+
+Nach Crosswalk:
+
+```{r}
+# crosswalk (geht hier bis 2020, aber danach gab es keine Veraenderung)
+btw_sn_ags20 <- xwalk_ags(
+  data=btw_sn, 
+  ags="district", 
+  time="year", 
+  xwalk="xd20", 
+  variables=c("voters", "valid"), 
+  weight="pop")
+ggplot(btw_sn_ags20, aes(year, (valid/voters)*100, group=ags20)) + 
+  geom_line() + geom_point() + ylab("Turnout (in %)") + xlab("Year")
+
+```
+
+Diese Harmonisierung ist immer fehlerbehaftet, wenn Einheiten nicht eindeutig zugeordnet werden können. Aber selbst bei eindeutiger Zuordnung gehen Informationen verloren, welche mglw. interessant sind. In bereits harmonisierten Daten (z.B. INKAR), gibt es keine Möglichkeit, historische Heterogenitäten nachzuvollziehen.
+
+In unserem Beispiel:
+
+```{r}
+# merge 2005 turnout to shapefiles
+t1 <- merge(
+  kre05 %>% mutate(AGS = substr(AGS, 1, 5)), 
+  btw_sn %>% filter(year == 2005) %>% mutate(turnout = (valid/voters)*100), 
+  all.x = FALSE, by.x = "AGS", by.y = "district"
+  )
+t2 <- merge(
+  kre22, 
+  btw_sn_ags20 %>% filter(year == 2005) %>% mutate(turnout = (valid/voters)*100), 
+  all.x = FALSE, by.x = "AGS", by.y = "ags20"
+  )
+# plot
+p1 <- ggplot() +
+  geom_spatvector(data = t1, aes(fill = turnout)) +
+  scale_fill_whitebox_c(palette = "pi_y_g", limits=c(70,80)) +
+  labs(
+    fill = "Turnout",
+    title = "Wahlbeteiligung BTW 2005",
+    subtitle = "Sachsen nach Kreisen"
+  )
+p2 <- ggplot() +
+  geom_spatvector(data = t2, aes(fill = turnout)) +
+  scale_fill_whitebox_c(palette = "pi_y_g", limits=c(70,80)) +
+  labs(
+    fill = "Turnout",
+    title = "Wahlbeteiligung BTW 2005",
+    subtitle = "Sachsen nach Kreisen von 2020"
+  )
+gridExtra::grid.arrange(p1, p2, ncol=2)
+
+```
+
+

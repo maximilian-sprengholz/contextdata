@@ -5,4 +5,5 @@
 /src
 /.vscode
 environment_local.yml
+dep_local.R
 seafile-ignore.txt
