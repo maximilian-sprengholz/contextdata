@@ -33,7 +33,7 @@ kre05 <- project(vect("data/kre05/kre05.shp"), crs(kre22)) # 2005
 - Neue User bekommen free credits (vor 1 Jahr ~ 300 Euro) und einige Services erlauben limitierte kostenlose Anfragen pro Tag, aber generell kostet jede Anfrage $
 
 ```{r}
-key <- "AIzaSyB9VFcnDHB3XbAabqSVG3cA24iGx7dpGCo"
+key <- "API_KEY"
 set_key(key = key)
 ```
 
