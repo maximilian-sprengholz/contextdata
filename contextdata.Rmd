@@ -157,17 +157,12 @@ ggplot() +
 
 __Ausprobieren:__
 
-- Schaut euch noch mal die `themes` an. Wir würden gern die Dichte an Ärzt:innen pro 1000 Einwohner:innen im Landkreis wissen.
+- Schaut euch noch mal die `themes` an. Wir würden gern die Dichte an Ärzt:innen pro 10000 Einwohner:innen im Landkreis wissen.
   ```r
   print(themes, n = 50, na.print = "")
   ```
 - Nutzt nun denselben Ablauf wie oben, um die entsprechenden Variablen zu finden und über `get_data` die Daten zu ziehen.
-- Merged die Daten zu Ärzt:innen und der Bevölkerung analog zu oben nacheinander an `kre22`.
-- Erstellt dann eine neue Variable, die die Ärzt:innendichte pro 1000 Einwohner:innen misst, hier angenommen ihr habt die `Wert` jeweils in `docs` und `pop` umbenannt:
-  ```r
-  kre22$docs_1000ew <- (kre22$docs / kre22$pop) * 1000
-  ```
-- Und nun plotten, ebenfalls analog zu oben, mit der Option `fill = docs_1000ew`
+- Merged die Daten analog zu oben nacheinander an `kre22` und plottet
 - Wie schneidet Berlin ab im Vergleich zu den anderen Kreisen?
 
 
