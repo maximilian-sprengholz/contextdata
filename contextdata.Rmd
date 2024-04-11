@@ -32,6 +32,7 @@ kre05 <- project(vect("data/kre05/kre05.shp"), crs(kre22)) # 2005
 - Neue User bekommen free credits (vor 1 Jahr ~ 300 Euro) und einige Services erlauben limitierte kostenlose Anfragen pro Tag, aber generell kostet jede Anfrage $
 
 ```{r}
+library(googleway) # access google API
 key <- ""
 set_key(key = key)
 ```
@@ -43,7 +44,6 @@ set_key(key = key)
 - Abfrage: Krankenhäuser in der Umgebung
 
 ```{r}
-library(googleway) # access google API
 # example coordinates: DeZIM
 coords <- c(52.50960542566534, 13.387616284657216) # no standard; Google = lat lng
 res <- google_places(
