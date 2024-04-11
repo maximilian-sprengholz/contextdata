@@ -4,10 +4,7 @@ output: html_document
 
 # Workshop räumliche Kontextdaten
 
-Jupyter R Studio environment mit Beispielen/Übungen zum automatisierten Ziehen von räumlichen Kontextdaten für Deutschland aus verschiedenen Quellen:
-- X
-- Y
-- Z
+Jupyter R Studio environment mit Beispielen/Übungen zum automatisierten Ziehen von räumlichen Kontextdaten für Deutschland aus verschiedenen Quellen.
 
 ```{r, setup}
 # packages
@@ -24,6 +21,8 @@ Sys.setenv(PROJ_LIB = "/srv/conda/envs/notebook/share/proj") # auskommentieren w
 kre22 <- vect("data/kre22/kre22.shp") # Kreise Berlin, Brandenburg, Sachsen 2022
 kre05 <- project(vect("data/kre05/kre05.shp"), crs(kre22)) # 2005
 ```
+
+
 
 ## Google
 
@@ -100,7 +99,9 @@ __Ausprobieren: Google details über das DeZIM__
     )
   ```
 - Schaut euch an, ob ihr das richtige gefunden habt:
-  `print(res$result[c("name", "formatted_address", "place_id")])`
+  ```r
+  print(res$result[c("name", "formatted_address", "place_id")])
+  ```
 
 - Ja? Dann könnt ihr eine Detailsuche starten über die `place_id` angebt:
   ```r
@@ -110,8 +111,11 @@ __Ausprobieren: Google details über das DeZIM__
     )
   ```
 - Schaut euch die Details an. Was steckt alles drin?
-  `print(names(det$result))`
+  ```r
+  print(names(det$result))
+  ```
 - Was sind eure letzten Reviews?
+
 
 
 ## INKAR
@@ -138,18 +142,34 @@ Kann über `Schlüssel` an den Kreis `SpatVector` gemerged und dann geplottet we
 ```{r}
 kre22 <- merge(
   kre22, 
-  alq_kre %>% filter(Zeit == "2021"), 
+  alq_kre %>% filter(Zeit == "2021") %>% rename(alq = Wert), # bestenfalls umbenennen!
   all.x = TRUE, by.x = "AGS", by.y = "Schlüssel"
   )
 # plot
 ggplot() +
-  geom_spatvector(data = kre22, aes(fill = Wert)) +
+  geom_spatvector(data = kre22, aes(fill = alq)) +
   scale_fill_whitebox_c(palette = "pi_y_g", direction=-1) +
   labs(
     fill = "Arbeitslosenquote",
-    title = "Arbeitslosenquote nach Kreis, 2022"
+    title = "Arbeitslosenquote nach Kreis, 2021"
   )
 ```
+
+__Ausprobieren:__
+
+- Schaut euch noch mal die `themes` an. Wir würden gern die Dichte an Ärzt:innen pro 1000 Einwohner:innen im Landkreis wissen.
+  ```r
+  print(themes, n = 50, na.print = "")
+  ```
+- Nutzt nun denselben Ablauf wie oben, um die entsprechenden Variablen zu finden und über `get_data` die Daten zu ziehen.
+- Merged die Daten zu Ärzt:innen und der Bevölkerung analog zu oben nacheinander an `kre22`.
+- Erstellt dann eine neue Variable, die die Ärzt:innendichte pro 1000 Einwohner:innen misst, hier angenommen ihr habt die `Wert` jeweils in `docs` und `pop` umbenannt:
+  ```r
+  kre22$docs_1000ew <- (kre22$docs / kre22$pop) * 1000
+  ```
+- Und nun plotten, ebenfalls analog zu oben, mit der Option `fill = docs_1000ew`
+- Wie schneidet Berlin ab im Vergleich zu den anderen Kreisen?
+
 
 
 ## DWD Beispiel
@@ -174,6 +194,7 @@ precip_dezim <- as.data.frame(t(precip_dezim[, 2:length(precip_dezim)]))
 ggplot(precip_dezim, aes(x = time(precip_r), y = V1)) +
   geom_bar(stat = "identity") + ylab("mm") + xlab("Tag")
 ```
+
 
 
 ## Harmonisierung
