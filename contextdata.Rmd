@@ -33,7 +33,7 @@ kre05 <- project(vect("data/kre05/kre05.shp"), crs(kre22)) # 2005
 - Neue User bekommen free credits (vor 1 Jahr ~ 300 Euro) und einige Services erlauben limitierte kostenlose Anfragen pro Tag, aber generell kostet jede Anfrage $
 
 ```{r}
-key <- "API_KEY"
+key <- ""
 set_key(key = key)
 ```
 
@@ -89,6 +89,30 @@ Wie ginge es weiter?
 - z.B. räumliche Distanz zum nächsten Krankenhaus messen
 - Luftlinie vs. real gegeben Verkehrsmittel (wieder über Google API)
 
+__Ausprobieren: Google details über das DeZIM__
+
+- Sucht nach dem DeZIM über:
+  ```r
+  # 1. Sucht nach dem DeZIM über:
+  res <- google_places(
+    search_string = "Suchstring",
+    key = key
+    )
+  ```
+- Schaut euch an, ob ihr das richtige gefunden habt:
+  `print(res$result[c("name", "formatted_address", "place_id")])`
+
+- Ja? Dann könnt ihr eine Detailsuche starten über die `place_id` angebt:
+  ```r
+  det <- google_place_details(
+    place_id = "DeZIM_place_id",
+    key = key
+    )
+  ```
+- Schaut euch die Details an. Was steckt alles drin?
+  `print(names(det$result))`
+- Was sind eure letzten Reviews?
+
 
 ## INKAR
 
@@ -130,14 +154,18 @@ ggplot() +
 
 ## DWD Beispiel
 
-Tägliche Niederschlagsdaten (1x1 km, 100 Tage in 2024 bis 09.04.).
+Tägliche Niederschlagsdaten (1x1 km, 2024).
 ```{r}
-precip_r <- rast("data/pr_hyras_1_2024_v5-0_de.nc")
+hyras <- "https://opendata.dwd.de/climate_environment/CDC/grids_germany/daily/hyras_de/precipitation/"
+file <- "pr_hyras_1_2024_v5-0_de.nc"
+download.file(paste0(hyras, file), paste0("data/", file))
+precip_r <- rast(paste0("data/", file))
 print(precip_r)
 ```
 Nur weil es so schön ist:
 ```{r}
-plot(precip_r[[100]], main = paste("Niederschlagssumme (mm)", time(precip_r[[100]])))
+recent <- dim(precip_r)[3]
+plot(precip_r[[recent]], main = paste("Niederschlagssumme (mm)", time(precip_r[[recent]])))
 ```
 Niederschlag am DeZIM 2024:
 ```{r}
